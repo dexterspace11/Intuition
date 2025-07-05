@@ -1,4 +1,4 @@
-# -------------------- Intuitive Neural AI - Streamlit Dashboard (Auto-Updating) --------------------
+# -------------------- Intuitive Neural AI - Streamlit Dashboard (Auto-Updating + Dream Visualization) --------------------
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 import numpy as np
@@ -269,5 +269,22 @@ if st.session_state.round_num > 0:
     if st.session_state.net.episodic.episodes:
         latest = list(st.session_state.net.episodic.episodes.items())[-1]
         st.write(latest)
+
+    st.subheader("🌙 Dreaming Memory (Last Replay)")
+    last_dreams = st.session_state.net.memory.replay()
+    if last_dreams:
+        df_dreams = pd.DataFrame({
+            "Dream #": list(range(1, len(last_dreams)+1)),
+            "Pattern": last_dreams
+        })
+        st.dataframe(df_dreams)
+        fig, ax = plt.subplots()
+        ax.bar(range(len(last_dreams)), [sum(p) for p in last_dreams])
+        ax.set_title("Summed Values of Dreamed Patterns")
+        ax.set_xlabel("Dream Index")
+        ax.set_ylabel("Summed Value")
+        st.pyplot(fig)
+    else:
+        st.info("No dreams yet.")
 
 st.caption("Auto-updating every 60 seconds to grow and learn continuously. Memory is saved and restored between runs.")
