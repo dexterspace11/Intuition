@@ -1,5 +1,6 @@
 # -------------------- Intuitive Neural AI - Streamlit Dashboard (Auto-Updating) --------------------
 import streamlit as st
+from streamlit_autorefresh import st_autorefresh
 import numpy as np
 import pandas as pd
 import random
@@ -194,8 +195,8 @@ def load_state():
 
 # ---------------- Streamlit UI -------------------
 st.set_page_config(page_title="Intuitive Neural AI", layout="wide")
+st_autorefresh(interval=60000, limit=None, key="auto_refresh")
 st.title("🤖 Intuitive Neural AI - Self Growing, Pattern-Aware Predictor")
-st.experimental_set_query_params(dummy=str(time.time()))
 
 if 'net' not in st.session_state:
     load_state()
@@ -237,7 +238,6 @@ if now - st.session_state.last_run >= interval_seconds:
     st.session_state.round_num = round_num
 
     save_state()
-    st.rerun()
 
 st.subheader(f"Round {st.session_state.round_num}")
 st.markdown(f"⏳ Updated at: {datetime.now().strftime('%H:%M:%S')}")
