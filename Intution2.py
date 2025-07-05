@@ -6,6 +6,9 @@ import random
 import time
 import matplotlib.pyplot as plt
 from datetime import datetime
+import os
+import pickle
+import networkx as nx
 
 # ---------------- Memory Structures -------------------
 class EpisodicMemory:
@@ -77,6 +80,7 @@ class HybridNeuralUnit:
         self.age = 0
         self.usage_count = 0
         self.emotional_weight = 1.0
+        self.connections = []
 
     def quantum_similarity(self, input_pattern):
         diff = np.abs(np.array(input_pattern) - self.position)
@@ -98,6 +102,10 @@ class IntuitiveNeuralNetwork:
 
     def grow(self, input_pattern):
         new_unit = HybridNeuralUnit(input_pattern)
+        for unit in self.units:
+            if random.random() < 0.3:
+                unit.connections.append(len(self.units))
+                new_unit.connections.append(self.units.index(unit))
         self.units.append(new_unit)
         return new_unit
 
@@ -150,21 +158,55 @@ def plot_accuracy(acc):
     ax.legend()
     st.pyplot(fig)
 
+def draw_neural_graph(network):
+    G = nx.Graph()
+    for i, unit in enumerate(network.units):
+        G.add_node(i)
+        for j in unit.connections:
+            G.add_edge(i, j)
+    fig, ax = plt.subplots(figsize=(8, 5))
+    pos = nx.spring_layout(G)
+    nx.draw(G, pos, with_labels=True, node_color='skyblue', node_size=500, ax=ax)
+    st.pyplot(fig)
+
+# ---------------- Persistence -------------------
+def save_state():
+    with open("net_state.pkl", "wb") as f:
+        pickle.dump({
+            'net': st.session_state.net,
+            'history': st.session_state.history,
+            'predictions': st.session_state.predictions,
+            'accuracies': st.session_state.accuracies,
+            'round_num': st.session_state.round_num,
+            'last_run': st.session_state.last_run
+        }, f)
+
+def load_state():
+    if os.path.exists("net_state.pkl"):
+        with open("net_state.pkl", "rb") as f:
+            state = pickle.load(f)
+            st.session_state.net = state['net']
+            st.session_state.history = state['history']
+            st.session_state.predictions = state['predictions']
+            st.session_state.accuracies = state['accuracies']
+            st.session_state.round_num = state['round_num']
+            st.session_state.last_run = state['last_run']
+
 # ---------------- Streamlit UI -------------------
 st.set_page_config(page_title="Intuitive Neural AI", layout="wide")
 st.title("🤖 Intuitive Neural AI - Self Growing, Pattern-Aware Predictor")
 
 if 'net' not in st.session_state:
-    st.session_state.net = IntuitiveNeuralNetwork()
-    st.session_state.history = []
-    st.session_state.predictions = []
-    st.session_state.accuracies = []
-    st.session_state.round_num = 0
-    st.session_state.last_run = time.time()
+    load_state()
+    if 'net' not in st.session_state:
+        st.session_state.net = IntuitiveNeuralNetwork()
+        st.session_state.history = []
+        st.session_state.predictions = []
+        st.session_state.accuracies = []
+        st.session_state.round_num = 0
+        st.session_state.last_run = time.time()
 
-st_autorefresh = st.experimental_rerun
 interval_seconds = 60
-
 now = time.time()
 if now - st.session_state.last_run >= interval_seconds:
     st.session_state.last_run = now
@@ -193,7 +235,8 @@ if now - st.session_state.last_run >= interval_seconds:
     st.session_state.accuracies = accuracies
     st.session_state.round_num = round_num
 
-    st.experimental_rerun()
+    save_state()
+    st.rerun()
 
 st.subheader(f"Round {st.session_state.round_num}")
 if st.session_state.round_num > 0:
@@ -206,11 +249,15 @@ if st.session_state.round_num > 0:
             'Age': u.age,
             'Usage Count': u.usage_count,
             'Emotional Weight': round(u.emotional_weight, 2),
-            'Position': list(u.position)
+            'Position': list(u.position),
+            'Connections': len(u.connections)
         }
         for u in st.session_state.net.units
     ])
     st.dataframe(df_units)
+
+    st.subheader("🔗 Neural Network Connections")
+    draw_neural_graph(st.session_state.net)
 
     st.subheader("🧩 Working Memory Snapshots")
     st.write(st.session_state.net.memory.replay())
@@ -220,4 +267,4 @@ if st.session_state.round_num > 0:
         latest = list(st.session_state.net.episodic.episodes.items())[-1]
         st.write(latest)
 
-st.caption("Auto-updating every 60 seconds to grow and learn continuously.")
+st.caption("Auto-updating every 60 seconds to grow and learn continuously. Memory is saved and restored between runs.")
