@@ -195,6 +195,7 @@ def load_state():
 # ---------------- Streamlit UI -------------------
 st.set_page_config(page_title="Intuitive Neural AI", layout="wide")
 st.title("🤖 Intuitive Neural AI - Self Growing, Pattern-Aware Predictor")
+st.experimental_set_query_params(dummy=str(time.time()))
 
 if 'net' not in st.session_state:
     load_state()
@@ -239,6 +240,8 @@ if now - st.session_state.last_run >= interval_seconds:
     st.rerun()
 
 st.subheader(f"Round {st.session_state.round_num}")
+st.markdown(f"⏳ Updated at: {datetime.now().strftime('%H:%M:%S')}")
+
 if st.session_state.round_num > 0:
     st.write(f"Actual: {st.session_state.history[-1]}, Predicted: {st.session_state.predictions[-1]}, Match: {st.session_state.accuracies[-1]:.2f}")
     plot_accuracy(st.session_state.accuracies)
